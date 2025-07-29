@@ -5,7 +5,7 @@ ECDSA Key Finder Script (Correct Version)
 =========================================
 
 Правильная логика поиска 5 ключей:
-1. Ключ1: k=k, r=r, s=s, z=z → "x"
+1. Ключ1: k=k, r=r, s=r, z=r → "x"
 2. Ключ2: k=k, r=r, s=0, d=1 → "Первый ключ" (запоминаем z)
 3. Ключ3: k=k, r=r, s=0, z=ключ2.z*16, d=16 → "16 ключ"
 4. Ключ4: k=k, r=r, s=ключ1.s-ключ3.s, z=ключ1.z-ключ3.z → "-y"
@@ -53,13 +53,21 @@ class ECDSAKeyFinder:
             print(f"❌ Нет данных для k={k_value}")
             return []
         
-        # Ключ 1: первая найденная строка с k
-        key1 = k_rows[0]
-        key1_k = key1[0]  # k
-        key1_r = key1[1]  # r
-        key1_s = key1[2]  # s
-        key1_z = key1[3]  # z
-        print(f"✅ Ключ 1: k={key1_k}, r={key1_r}, s={key1_s}, z={key1_z}")
+        # Ключ 1: k=k, r=r, s=r, z=r
+        key1 = None
+        for row in k_rows:
+            if row[2] == row[1] and row[3] == row[1]:  # s=r и z=r
+                key1 = row
+                key1_k = key1[0]  # k
+                key1_r = key1[1]  # r
+                key1_s = key1[2]  # s
+                key1_z = key1[3]  # z
+                print(f"✅ Ключ 1: k={key1_k}, r={key1_r}, s={key1_s}, z={key1_z}")
+                break
+        
+        if not key1:
+            print(f"❌ Ключ 1 не найден (k={k_value}, s=r, z=r)")
+            return []
         
         # Ключ 2: k=k, r=key1.r, s=0, d=1
         key2 = None
