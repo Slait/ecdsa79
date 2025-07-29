@@ -8,8 +8,12 @@ ECDSA Key Finder Script
 Логика работы:
 1. Пользователь вводит значение k
 2. Система ищет строку с указанным k, определяет r
-3. Находит строку где k=введенное_k, r=найденное_r, s=r, z=r
-4. Выводит все вычисленные значения включая дополнительную колонку "Формула"
+3. Находит 4 типа ключей:
+   - Ключ 1 (основной): k=k_value, r=r_value, s=r_value, z=r_value → Формула "x"
+   - Ключ 2 (первый): k=k_value, s=0, d=1 → Формула "Первый ключ"
+   - Ключ 3: d на 16 меньше key1.d, s=key1.s, z=key1.z-key2.z → Формула "-y"
+   - Ключ 4 (зеркальный): s=-key3.s (mod 79), z=-key3.z (mod 79) → Формула "y"
+4. Выводит все найденные ключи в табличном формате
 
 Автор: Assistant
 Дата создания: 2024
@@ -138,60 +142,122 @@ class ECDSAKeyFinder:
         print(f"❌ Не найдена строка с заданными условиями")
         return None
     
-    def calculate_formula_value(self, row):
+    def find_key2(self, k_value):
         """
-        Вычисляет значение дополнительной формулы (пример реализации)
+        Находит Ключ 2: k=k_value, s=0, d=1
         
         Args:
-            row (list): Строка данных
+            k_value (int): Значение k для поиска
             
         Returns:
-            str: Вычисленное значение формулы
+            list or None: Найденная строка или None
         """
-        # Пример вычисления формулы
-        # В реальной задаче здесь должна быть конкретная формула
-        # Пока возвращаем символическое значение 'x'
-        return 'x'
+        print(f"🔍 Ищу Ключ 2: k={k_value}, s=0, d=1...")
+        
+        # Индексы колонок
+        k_col_index = 0  # k
+        s_col_index = 2  # s
+        d_col_index = 4  # d
+        
+        for row in self.data:
+            if (row[k_col_index] == k_value and 
+                row[s_col_index] == 0 and 
+                row[d_col_index] == 1):
+                print(f"✅ Найден Ключ 2! z={row[3]}")
+                return row
+        
+        print(f"❌ Не найден Ключ 2 с условиями: k={k_value}, s=0, d=1")
+        return None
     
-    def display_result(self, row):
+    def find_key3(self, key1_data, key2_data):
         """
-        Отображает результат в красивом табличном формате
+        Находит Ключ 3: d на 16 меньше key1.d, s=key1.s, z=key1.z-key2.z
         
         Args:
-            row (list): Строка данных для отображения
+            key1_data (list): Данные первого ключа
+            key2_data (list): Данные второго ключа
+            
+        Returns:
+            list or None: Найденная строка или None
         """
-        print("\n" + "="*120)
-        print("🎯 РЕЗУЛЬТАТ ПОИСКА ECDSA КЛЮЧА")
-        print("="*120)
+        key3_d = key1_data[4] - 16  # d на 16 меньше key1.d
+        key3_s = key1_data[2]       # s = key1.s
+        key3_z = key1_data[3] - key2_data[3]  # z = key1.z - key2.z
         
-        # Добавляем значение формулы
-        formula_value = self.calculate_formula_value(row)
-        extended_row = row.copy()
-        extended_row.append(formula_value)
+        print(f"🔍 Ищу Ключ 3: d={key3_d}, s={key3_s}, z={key3_z}...")
         
-        # Расширенные заголовки
-        extended_headers = self.headers.copy()
-        extended_headers.append("Формула")
+        # Индексы колонок
+        d_col_index = 4  # d
+        s_col_index = 2  # s
+        z_col_index = 3  # z
+        
+        for row in self.data:
+            if (row[d_col_index] == key3_d and 
+                row[s_col_index] == key3_s and 
+                row[z_col_index] == key3_z):
+                print(f"✅ Найден Ключ 3!")
+                return row
+        
+        print(f"❌ Не найден Ключ 3 с условиями: d={key3_d}, s={key3_s}, z={key3_z}")
+        return None
+    
+    def find_key4(self, key3_data):
+        """
+        Находит Ключ 4 (зеркальный): s=-key3.s (mod 79), z=-key3.z (mod 79)
+        
+        Args:
+            key3_data (list): Данные третьего ключа
+            
+        Returns:
+            list or None: Найденная строка или None
+        """
+        key4_s = (-key3_data[2]) % 79  # s = -key3.s (mod 79)
+        key4_z = (-key3_data[3]) % 79  # z = -key3.z (mod 79)
+        
+        print(f"🔍 Ищу Ключ 4 (зеркальный): s={key4_s}, z={key4_z}...")
+        
+        # Индексы колонок
+        s_col_index = 2  # s
+        z_col_index = 3  # z
+        
+        for row in self.data:
+            if (row[s_col_index] == key4_s and 
+                row[z_col_index] == key4_z):
+                print(f"✅ Найден Ключ 4 (зеркальный)!")
+                return row
+        
+        print(f"❌ Не найден Ключ 4 с условиями: s={key4_s}, z={key4_z}")
+        return None
+    
+    def display_results_table(self, keys_data):
+        """
+        Отображает таблицу с несколькими найденными ключами
+        
+        Args:
+            keys_data (list): Список кортежей (данные_ключа, название_формулы)
+        """
+        print("\n" + "="*150)
+        print("🎯 РЕЗУЛЬТАТ ПОИСКА ECDSA КЛЮЧЕЙ")
+        print("="*150)
         
         # Выводим заголовки
-        header_line = ""
-        for header in extended_headers:
-            header_line += f"{header:>12}"
-        print(header_line)
-        print("-" * len(header_line))
+        print(f"{'k':>8}{'r':>8}{'s':>8}{'z':>8}{'d':>8}{'ks+1':>8}{'ks+z':>8}{'(ks+1)/k':>10}{'(ks+z)/k':>10}{'d-k+1':>8}{'(d-k+1)/k':>12}{'((d-k+1)/k)^77':>15}{'d-k+z':>8}{'(d-k+z)/k':>12}{'((d-k+z)/k)^77':>15}{'Формула':>12}")
+        print("-" * 150)
         
-        # Выводим значения
-        value_line = ""
-        for value in extended_row:
-            value_line += f"{value:>12}"
-        print(value_line)
+        # Выводим каждый ключ
+        for row_data, formula_name in keys_data:
+            if row_data and len(row_data) >= 15:
+                print(f"{row_data[0]:>8}{row_data[1]:>8}{row_data[2]:>8}{row_data[3]:>8}{row_data[4]:>8}{row_data[5]:>8}{row_data[6]:>8}{row_data[7]:>10}{row_data[8]:>10}{row_data[9]:>8}{row_data[10]:>12}{row_data[11]:>15}{row_data[12]:>8}{row_data[13]:>12}{row_data[14]:>15}{formula_name:>12}")
         
-        print("="*120)
+        print("="*150)
         
         # Дополнительная информация
         print("\n📊 ПОДРОБНАЯ ИНФОРМАЦИЯ:")
-        for i, (header, value) in enumerate(zip(extended_headers, extended_row)):
-            print(f"   {header}: {value}")
+        for i, (row_data, formula_name) in enumerate(keys_data, 1):
+            if row_data:
+                print(f"\n   🔑 Ключ {i} ({formula_name}):")
+                for j, (header, value) in enumerate(zip(self.headers, row_data)):
+                    print(f"      {header}: {value}")
     
     def run(self):
         """
@@ -228,14 +294,42 @@ class ECDSAKeyFinder:
                     print(f"❌ Не найдено значение r для k={k_value}")
                     continue
                 
-                # Шаг 2: Находим строку с условиями k=k_value, r=r_value, s=r_value, z=r_value
-                target_row = self.find_target_row(k_value, r_value)
-                if target_row is None:
-                    print(f"❌ Не найдена строка с требуемыми условиями")
+                # Шаг 2: Находим Ключ 1 - основной ключ с условиями k=k_value, r=r_value, s=r_value, z=r_value
+                print(f"\n🔍 Поиск Ключа 1 (основной ключ)...")
+                key1_data = self.find_target_row(k_value, r_value)
+                if key1_data is None:
+                    print(f"❌ Не найден Ключ 1 с требуемыми условиями")
                     continue
                 
-                # Шаг 3: Выводим результат
-                self.display_result(target_row)
+                # Шаг 3: Находим Ключ 2 - k остается статичным, s=0, d=1
+                print(f"\n🔍 Поиск Ключа 2 (Первый ключ)...")
+                key2_data = self.find_key2(k_value)
+                if key2_data is None:
+                    print(f"❌ Не найден Ключ 2")
+                    # Продолжаем работу только с Ключом 1
+                    keys_found = [(key1_data, "x")]
+                else:
+                    # Шаг 4: Находим Ключ 3 - d на 16 меньше key1.d, s=key1.s, z=key1.z-key2.z
+                    print(f"\n🔍 Поиск Ключа 3 (-y)...")
+                    key3_data = self.find_key3(key1_data, key2_data)
+                    
+                    if key3_data is None:
+                        print(f"❌ Не найден Ключ 3")
+                        keys_found = [(key1_data, "x"), (key2_data, "Первый ключ")]
+                    else:
+                        # Шаг 5: Находим Ключ 4 - зеркальный ключ
+                        print(f"\n🔍 Поиск Ключа 4 (зеркальный - y)...")
+                        key4_data = self.find_key4(key3_data)
+                        
+                        if key4_data is None:
+                            print(f"❌ Не найден Ключ 4")
+                            keys_found = [(key1_data, "x"), (key2_data, "Первый ключ"), (key3_data, "-y")]
+                        else:
+                            keys_found = [(key1_data, "x"), (key2_data, "Первый ключ"), (key3_data, "-y"), (key4_data, "y")]
+                
+                # Шаг 6: Выводим результаты всех найденных ключей
+                print(f"\n✅ Найдено ключей: {len(keys_found)}")
+                self.display_results_table(keys_found)
                 
             except ValueError:
                 print("❌ Ошибка: Введите корректное числовое значение для k")
