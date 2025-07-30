@@ -345,7 +345,7 @@ def main():
     print(report)
     
     # Also save to file
-    with open('ai_analysis_report.txt', 'w') as f:
+    with open('ai_analysis_report.txt', 'w', encoding='utf-8') as f:
         f.write(report)
     
     print("\nReport saved to 'ai_analysis_report.txt'")

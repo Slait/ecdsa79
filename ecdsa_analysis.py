@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-ECDSA Analysis for curve y² = x³ + 7 mod 79
+ECDSA Analysis for curve y² = x³ + 7 mod 67
 Base point Q = (2, 22)
+Signature modulus = 79
 
 This script analyzes ECDSA signatures to find relationships between r, s, z and k values.
 """
@@ -13,13 +14,13 @@ import itertools
 from collections import defaultdict
 
 # Curve parameters
-P = 79  # Prime modulus
+P = 67  # Prime modulus
 A = 0   # Coefficient a in y² = x³ + ax + b
 B = 7   # Coefficient b in y² = x³ + ax + b
-BASE_POINT = (1, 18)  # Base point Q (order 67)
+BASE_POINT = (2, 22)  # Base point Q
 
 class EllipticCurve:
-    """Elliptic curve y² = x³ + 7 mod 79"""
+    """Elliptic curve y² = x³ + 7 mod 67"""
     
     def __init__(self):
         self.p = P
@@ -133,14 +134,15 @@ class ECDSAAnalyzer:
     
     def verify_signature(self, r: int, s: int, z: int, public_key: Tuple[int, int]) -> bool:
         """Verify ECDSA signature"""
-        if r <= 0 or r >= self.curve.order:
+        signature_mod = 79  # Signature modulus
+        if r <= 0 or r >= signature_mod:
             return False
-        if s <= 0 or s >= self.curve.order:
+        if s <= 0 or s >= signature_mod:
             return False
         
-        w = self.curve._mod_inverse(s, self.curve.order)
-        u1 = (z * w) % self.curve.order
-        u2 = (r * w) % self.curve.order
+        w = self.curve._mod_inverse(s, signature_mod)
+        u1 = (z * w) % signature_mod
+        u2 = (r * w) % signature_mod
         
         point1 = self.curve.point_multiply(u1, self.curve.base_point)
         point2 = self.curve.point_multiply(u2, public_key)
@@ -154,10 +156,11 @@ class ECDSAAnalyzer:
     def brute_force_k_search(self, r: int, s: int, z: int) -> List[int]:
         """Brute force search for k values that could produce given r"""
         possible_k = []
+        signature_mod = 79  # Signature modulus
         
-        for k in range(1, self.curve.order):
+        for k in range(1, signature_mod):
             point = self.curve.point_multiply(k, self.curve.base_point)
-            if point and point[0] % self.curve.order == r:
+            if point and point[0] % signature_mod == r:
                 possible_k.append(k)
                 
         return possible_k
@@ -165,12 +168,13 @@ class ECDSAAnalyzer:
     def analyze_r_k_relationship(self) -> Dict:
         """Analyze relationship between r and k values"""
         r_to_k = defaultdict(list)
+        signature_mod = 79  # Signature modulus
         
         print("Analyzing r-k relationships...")
-        for k in range(1, self.curve.order):
+        for k in range(1, signature_mod):
             point = self.curve.point_multiply(k, self.curve.base_point)
             if point:
-                r = point[0] % self.curve.order
+                r = point[0] % signature_mod
                 r_to_k[r].append(k)
         
         return dict(r_to_k)
@@ -178,17 +182,18 @@ class ECDSAAnalyzer:
     def find_k_from_r(self, r: int) -> List[int]:
         """Find all possible k values for given r"""
         possible_k = []
+        signature_mod = 79  # Signature modulus
         
-        for k in range(1, self.curve.order):
+        for k in range(1, signature_mod):
             point = self.curve.point_multiply(k, self.curve.base_point)
-            if point and point[0] % self.curve.order == r:
+            if point and point[0] % signature_mod == r:
                 possible_k.append(k)
                 
         return possible_k
 
 def main():
     """Main analysis function"""
-    print("ECDSA Analysis for curve y² = x³ + 7 mod 79")
+    print("ECDSA Analysis for curve y² = x³ + 7 mod 67")
     print("=" * 50)
     
     # Initialize curve
