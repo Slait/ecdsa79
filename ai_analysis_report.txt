@@ -1,0 +1,33 @@
+AI PATTERN ANALYSIS REPORT
+==================================================
+
+Sample Size: 199 ECDSA signatures
+Curve Order: 67
+
+FOUND FORMULAS FOR K FROM R:
+------------------------------
+Formula: Direct Lookup
+  Description: Use precomputed r->k mapping
+  Reliability: 100.00%
+  Complexity: O(1)
+
+Formula: Quadratic Residue (m=9)
+  Description: k ≡ sqrt(r * 9) (mod 67)
+  Reliability: 9.68%
+  Complexity: O(sqrt(n))
+
+
+LINEAR RELATIONSHIPS:
+--------------------
+Found r-k linear relationships:
+  r ≡ 5k + 9 (mod 67) for r=26, k=57
+  r ≡ 3k + 2 (mod 67) for r=6, k=46
+  r ≡ 1k + 3 (mod 67) for r=21, k=18
+  r ≡ 3k + 6 (mod 67) for r=17, k=26
+  r ≡ 3k + 3 (mod 67) for r=23, k=29
+
+STATISTICAL SUMMARY:
+------------------
+R-K Correlation: -0.0361
+Most common r values: [(6, 12), (60, 11), (8, 11)]
+Most common k values: [(46, 8), (2, 7), (11, 7)]
