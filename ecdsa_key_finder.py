@@ -4,12 +4,17 @@
 ECDSA Key Finder Script (Correct Version)
 =========================================
 
-Правильная логика поиска 5 ключей:
+Правильная логика поиска 10 ключей:
 1. Ключ1: k=k, r=r, s=r, z=r → "x"
 2. Ключ2: k=k, r=r, s=0, d=1 → "Первый ключ" (запоминаем z)
 3. Ключ3: k=k, r=r, s=0, z=ключ2.z*16, d=16 → "16 ключ"
 4. Ключ4: k=k, r=r, s=ключ1.s-ключ3.s, z=ключ1.z-ключ3.z → "-y"
 5. Ключ5: k=k, r=r, s=-ключ4.s, z=-ключ4.z → "y"
+6. Ключ6: k=k, r=r, s=ключ1.s*ключ1.d, z=ключ1.z*ключ1.d → "x^2 секретно"
+7. Ключ7: k=k, r=r, s=ключ5.s*ключ5.d, z=ключ5.z*ключ5.d → "y^2 секретно"
+8. Ключ8: k=k, r=r, s=ключ6.s+ключ7.s, z=ключ6.z+ключ7.z → "x^2+y^2 секретно"
+9. Ключ9: k=k, r=r, s=ключ3.s*16, z=ключ3.z*16 → "16^2=19, (x+y)^2=x^2 + 2xy + y^2"
+10. Ключ10: k=k, r=r, s=ключ6.s+ключ7.s, z=-ключ6.z+ключ7.z → "x^2+y^2 секретно"
 
 Все расчеты по модулю 79
 """
@@ -42,7 +47,7 @@ class ECDSAKeyFinder:
         print(f"✅ Загружено {len(self.data)} строк")
     
     def find_keys_for_k(self, k_value):
-        """Находит все 5 ключей для заданного k"""
+        """Находит все 10 ключей для заданного k"""
         print(f"🔍 Поиск всех ключей для k={k_value}")
         
         # Фильтруем только строки с нужным k
@@ -123,12 +128,87 @@ class ECDSAKeyFinder:
             print(f"❌ Ключ 5 не найден (k={k_value}, r={key1_r}, s={key5_s}, z={key5_z})")
             return [(key1, "x"), (key2, "Первый ключ"), (key3, "16 ключ"), (key4, "-y")]
         
+        # Ключ 6: k=k, r=r, s=key1.s*key1.d, z=key1.z*key1.d
+        key6_s = (key1_s * key1[4]) % 79  # s = key1.s * key1.d
+        key6_z = (key1_z * key1[4]) % 79  # z = key1.z * key1.d
+        key6 = None
+        for row in k_rows:
+            if row[1] == key1_r and row[2] == key6_s and row[3] == key6_z:
+                key6 = row
+                print(f"✅ Ключ 6: k={row[0]}, r={row[1]}, s={key6_s}, z={key6_z}")
+                break
+        
+        if not key6:
+            print(f"❌ Ключ 6 не найден (k={k_value}, r={key1_r}, s={key6_s}, z={key6_z})")
+            return [(key1, "x"), (key2, "Первый ключ"), (key3, "16 ключ"), (key4, "-y"), (key5, "y")]
+        
+        # Ключ 7: k=k, r=key1.r, s=key5.s*key5.d, z=key5.z*key5.d
+        key7_s = (key5[2] * key5[4]) % 79  # s = key5.s * key5.d
+        key7_z = (key5[3] * key5[4]) % 79  # z = key5.z * key5.d
+        key7 = None
+        for row in k_rows:
+            if row[1] == key1_r and row[2] == key7_s and row[3] == key7_z:
+                key7 = row
+                print(f"✅ Ключ 7: k={row[0]}, r={row[1]}, s={key7_s}, z={key7_z}")
+                break
+        
+        if not key7:
+            print(f"❌ Ключ 7 не найден (k={k_value}, r={key1_r}, s={key7_s}, z={key7_z})")
+            return [(key1, "x"), (key2, "Первый ключ"), (key3, "16 ключ"), (key4, "-y"), (key5, "y"), (key6, "x^2 секретно")]
+        
+        # Ключ 8: k=k, r=key1.r, s=key6.s+key7.s, z=key6.z+key7.z
+        key8_s = (key6_s + key7_s) % 79
+        key8_z = (key6_z + key7_z) % 79
+        key8 = None
+        for row in k_rows:
+            if row[1] == key1_r and row[2] == key8_s and row[3] == key8_z:
+                key8 = row
+                print(f"✅ Ключ 8: k={row[0]}, r={row[1]}, s={key8_s}, z={key8_z}")
+                break
+        
+        if not key8:
+            print(f"❌ Ключ 8 не найден (k={k_value}, r={key1_r}, s={key8_s}, z={key8_z})")
+            return [(key1, "x"), (key2, "Первый ключ"), (key3, "16 ключ"), (key4, "-y"), (key5, "y"), (key6, "x^2 секретно"), (key7, "y^2 секретно")]
+        
+        # Ключ 9: k=k, r=key1.r, s=key3.s*16, z=key3.z*16
+        key9_s = (key3[2] * 16) % 79
+        key9_z = (key3[3] * 16) % 79
+        key9 = None
+        for row in k_rows:
+            if row[1] == key1_r and row[2] == key9_s and row[3] == key9_z:
+                key9 = row
+                print(f"✅ Ключ 9: k={row[0]}, r={row[1]}, s={key9_s}, z={key9_z}")
+                break
+        
+        if not key9:
+            print(f"❌ Ключ 9 не найден (k={k_value}, r={key1_r}, s={key9_s}, z={key9_z})")
+            return [(key1, "x"), (key2, "Первый ключ"), (key3, "16 ключ"), (key4, "-y"), (key5, "y"), (key6, "x^2 секретно"), (key7, "y^2 секретно"), (key8, "x^2+y^2 секретно")]
+        
+        # Ключ 10: k=k, r=key1.r, s=key6.s+key7.s, z=-key6.z+key7.z
+        key10_s = (key6_s + key7_s) % 79
+        key10_z = (-key6_z + key7_z) % 79
+        key10 = None
+        for row in k_rows:
+            if row[1] == key1_r and row[2] == key10_s and row[3] == key10_z:
+                key10 = row
+                print(f"✅ Ключ 10: k={row[0]}, r={row[1]}, s={key10_s}, z={key10_z}")
+                break
+        
+        if not key10:
+            print(f"❌ Ключ 10 не найден (k={k_value}, r={key1_r}, s={key10_s}, z={key10_z})")
+            return [(key1, "x"), (key2, "Первый ключ"), (key3, "16 ключ"), (key4, "-y"), (key5, "y"), (key6, "x^2 секретно"), (key7, "y^2 секретно"), (key8, "x^2+y^2 секретно"), (key9, "16^2=19, (x+y)^2=x^2 + 2xy + y^2")]
+        
         return [
             (key1, "x"),
             (key2, "Первый ключ"),
             (key3, "16 ключ"),
             (key4, "-y"),
-            (key5, "y")
+            (key5, "y"),
+            (key6, "x^2 секретно"),
+            (key7, "y^2 секретно"),
+            (key8, "x^2+y^2 секретно"),
+            (key9, "16^2=19, (x+y)^2=x^2 + 2xy + y^2"),
+            (key10, "x^2+y^2 секретно")
         ]
     
     def display_table(self, keys_data):
@@ -172,9 +252,31 @@ class ECDSAKeyFinder:
                 key4_s, key4_z = keys_data[3][0][2], keys_data[3][0][3]
                 print(f"   └── s = -{key4_s} = {(-key4_s) % 79} (mod 79)")
                 print(f"   └── z = -{key4_z} = {(-key4_z) % 79} (mod 79)")
+            elif i == 6:  # Ключ 6
+                key1_s, key1_z, key1_d = keys_data[0][0][2], keys_data[0][0][3], keys_data[0][0][4]
+                print(f"   └── s = {key1_s} * {key1_d} = {(key1_s * key1_d) % 79} (mod 79)")
+                print(f"   └── z = {key1_z} * {key1_d} = {(key1_z * key1_d) % 79} (mod 79)")
+            elif i == 7:  # Ключ 7
+                key5_s, key5_z, key5_d = keys_data[4][0][2], keys_data[4][0][3], keys_data[4][0][4]
+                print(f"   └── s = {key5_s} * {key5_d} = {(key5_s * key5_d) % 79} (mod 79)")
+                print(f"   └── z = {key5_z} * {key5_d} = {(key5_z * key5_d) % 79} (mod 79)")
+            elif i == 8:  # Ключ 8
+                key6_s, key6_z = keys_data[5][0][2], keys_data[5][0][3]
+                key7_s, key7_z = keys_data[6][0][2], keys_data[6][0][3]
+                print(f"   └── s = {key6_s} + {key7_s} = {(key6_s + key7_s) % 79} (mod 79)")
+                print(f"   └── z = {key6_z} + {key7_z} = {(key6_z + key7_z) % 79} (mod 79)")
+            elif i == 9:  # Ключ 9
+                key3_s, key3_z = keys_data[2][0][2], keys_data[2][0][3]
+                print(f"   └── s = {key3_s} * 16 = {(key3_s * 16) % 79} (mod 79)")
+                print(f"   └── z = {key3_z} * 16 = {(key3_z * 16) % 79} (mod 79)")
+            elif i == 10:  # Ключ 10
+                key6_s, key6_z = keys_data[5][0][2], keys_data[5][0][3]
+                key7_s, key7_z = keys_data[6][0][2], keys_data[6][0][3]
+                print(f"   └── s = {key6_s} + {key7_s} = {(key6_s + key7_s) % 79} (mod 79)")
+                print(f"   └── z = -{key6_z} + {key7_z} = {(-key6_z + key7_z) % 79} (mod 79)")
     
     def run(self):
-        print("🚀 ECDSA Key Finder - Правильная версия с 5 ключами")
+        print("🚀 ECDSA Key Finder - Правильная версия с 10 ключами")
         print("="*60)
         
         # Быстрая загрузка
@@ -195,13 +297,13 @@ class ECDSAKeyFinder:
                 
                 k_value = int(user_input)
                 
-                # Поиск всех 5 ключей
+                # Поиск всех 10 ключей
                 keys_data = self.find_keys_for_k(k_value)
                 
                 # Вывод результата
                 if keys_data:
                     self.display_table(keys_data)
-                    print(f"\n✅ Найдено ключей: {len(keys_data)}/5")
+                    print(f"\n✅ Найдено ключей: {len(keys_data)}/10")
                 else:
                     print("❌ Ключи не найдены")
                 
