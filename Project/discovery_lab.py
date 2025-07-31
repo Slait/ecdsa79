@@ -187,7 +187,10 @@ class DiscoveryLab:
         
         prime_patterns['prime_r_count'] = len(prime_r_values)
         prime_patterns['prime_k_count'] = len(set(prime_k_values))
-        prime_patterns['prime_correlation'] = len(prime_r_values) / len(self.data_loader.r_k_pairs)
+        if len(self.data_loader.r_k_pairs) > 0:
+            prime_patterns['prime_correlation'] = len(prime_r_values) / len(self.data_loader.r_k_pairs)
+        else:
+            prime_patterns['prime_correlation'] = 0
         
         return prime_patterns
     
@@ -220,8 +223,8 @@ class DiscoveryLab:
                 'total_qr': len(qr_set),
                 'r_qr_count': r_qr_count,
                 'k_qr_count': k_qr_count,
-                'r_qr_ratio': r_qr_count / len(self.data_loader.all_r_values),
-                'k_qr_ratio': k_qr_count / len(self.data_loader.all_k_values)
+                'r_qr_ratio': r_qr_count / len(self.data_loader.all_r_values) if len(self.data_loader.all_r_values) > 0 else 0,
+                'k_qr_ratio': k_qr_count / len(self.data_loader.all_k_values) if len(self.data_loader.all_k_values) > 0 else 0
             }
         
         return qr_analysis
@@ -240,7 +243,10 @@ class DiscoveryLab:
                     cf_patterns.append(cf)
         
         cf_analysis['patterns'] = cf_patterns[:5]  # Top 5 patterns
-        cf_analysis['average_length'] = sum(len(cf) for cf in cf_patterns) / len(cf_patterns) if cf_patterns else 0
+        if len(cf_patterns) > 0:
+            cf_analysis['average_length'] = sum(len(cf) for cf in cf_patterns) / len(cf_patterns)
+        else:
+            cf_analysis['average_length'] = 0
         
         return cf_analysis
     
@@ -355,11 +361,23 @@ class DiscoveryLab:
         # Calculate average steps needed for brute force
         total_steps = 0
         for r, k_list in self.data_loader.r_k_pairs.items():
-            min_k = min(k_list)
-            total_steps += min_k  # Steps to find via brute force
+            if k_list:  # Check if k_list is not empty
+                min_k = min(k_list)
+                total_steps += min_k  # Steps to find via brute force
         
-        hardness['average_steps'] = total_steps / len(self.data_loader.r_k_pairs)
-        hardness['max_steps'] = max(min(k_list) for k_list in self.data_loader.r_k_pairs.values())
+        if len(self.data_loader.r_k_pairs) > 0:
+            hardness['average_steps'] = total_steps / len(self.data_loader.r_k_pairs)
+        else:
+            hardness['average_steps'] = 0
+        
+        if len(self.data_loader.r_k_pairs) > 0:
+            valid_mins = [min(k_list) for k_list in self.data_loader.r_k_pairs.values() if k_list]
+            if valid_mins:
+                hardness['max_steps'] = max(valid_mins)
+            else:
+                hardness['max_steps'] = 0
+        else:
+            hardness['max_steps'] = 0
         hardness['security_level'] = "low" if hardness['max_steps'] < 40 else "medium"
         
         return hardness
