@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 🚀 Revolutionary Data Intelligence System
-Loads and analyzes ALL ECDSA signatures from ecdsa79.csv
+Loads and analyzes ALL ECDSA signatures from escda79.csv
 Goal: Extract EVERY possible pattern for mathematical breakthrough
 """
 
@@ -14,7 +14,7 @@ import os
 class RevolutionaryDataLoader:
     """Revolutionary system for loading and analyzing ECDSA data"""
     
-    def __init__(self, csv_path="../ecdsa79.csv"):
+    def __init__(self, csv_path="../escda79.csv"):
         self.csv_path = csv_path
         self.signatures = []
         self.r_k_pairs = defaultdict(list)

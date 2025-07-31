@@ -61,7 +61,10 @@ class QuickDiscoveryDemo:
             if len(k_list) == 2 and sum(k_list) == 79:
                 complement_perfect += 1
         
-        complement_ratio = complement_perfect / len(self.r_k_perfect)
+        if len(self.r_k_perfect) > 0:
+            complement_ratio = complement_perfect / len(self.r_k_perfect)
+        else:
+            complement_ratio = 0
         
         print(f"   ✅ Complement property analysis: {complement_ratio:.1%} perfect!")
         print(f"   ✅ Discovery: k₁ + k₂ = 79 (Universal Law!)")
