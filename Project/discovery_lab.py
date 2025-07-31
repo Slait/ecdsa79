@@ -530,10 +530,10 @@ class DiscoveryLab:
         }
         
         # Save to file
-        with open('Project/research_report.json', 'w', encoding='utf-8') as f:
+        with open('research_report.json', 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, default=str)
         
-        print(f"    💾 Research report saved to: Project/research_report.json")
+        print(f"    💾 Research report saved to: research_report.json")
     
     def _generate_conclusions(self):
         """Generate research conclusions"""
